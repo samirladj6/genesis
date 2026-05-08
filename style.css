@@ -339,17 +339,123 @@ button { cursor: pointer; font-family: inherit; }
     color: var(--text-lighter); font-size: 0.88rem;
 }
 
+/* ===== Bottom Nav (mobile) ===== */
+.bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    z-index: 200;
+    padding: 6px 0 env(safe-area-inset-bottom, 8px);
+}
+.bottom-nav-inner {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+.bottom-nav-item {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    padding: 8px 16px;
+    color: var(--text-lighter);
+    font-size: 0.65rem; font-weight: 600;
+    border: none; background: none;
+    transition: color 0.15s;
+    text-decoration: none;
+}
+.bottom-nav-item.active { color: var(--primary); }
+.bottom-nav-item svg { width: 22px; height: 22px; }
+
+/* ===== Mobile cards layout ===== */
+.inv-cards-mobile { display: none; }
+.inv-card-item {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    transition: box-shadow 0.15s;
+}
+.inv-card-item.low { border-left: 3px solid var(--orange); background: #FFFDF7; }
+.inv-card-item.rupture { border-left: 3px solid var(--red); background: #FFF8F8; }
+.inv-card-top {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; margin-bottom: 8px;
+}
+.inv-card-name { font-weight: 700; font-size: 0.92rem; color: var(--secondary); }
+.inv-card-qty {
+    font-weight: 800; font-size: 1.1rem;
+    min-width: 60px; text-align: right;
+}
+.inv-card-qty.text-red { color: var(--red); }
+.inv-card-qty.text-orange { color: var(--orange); }
+.inv-card-mid {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px; flex-wrap: wrap;
+}
+.inv-card-actions {
+    display: flex; gap: 8px;
+}
+.inv-card-actions .action-btn {
+    flex: 1; text-align: center;
+    padding: 8px 12px; font-size: 0.78rem;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
     .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     .card-actions { flex-wrap: wrap; }
 }
 @media (max-width: 768px) {
+    /* Sidebar */
     .sidebar { position: fixed; top: 0; left: 0; bottom: 0; transform: translateX(-100%); }
-    .sidebar.open { transform: translateX(0); }
-    .menu-toggle { display: block; }
-    .page-container { padding: 20px 16px; }
+    .sidebar.open { transform: translateX(0); box-shadow: var(--shadow-lg); }
+    .sidebar-backdrop {
+        position: fixed; inset: 0;
+        background: rgba(15,23,42,0.4);
+        z-index: 99; display: none;
+    }
+    .sidebar-backdrop.active { display: block; }
+
+    /* Bottom nav visible, sidebar nav hidden */
+    .bottom-nav { display: block; }
+    .sidebar { display: none; }
+
+    /* Layout */
+    .menu-toggle { display: none; }
+    .page-container { padding: 16px 12px; padding-bottom: 80px; }
     .topbar { padding: 0 16px; }
-    .kpi-grid { grid-template-columns: 1fr; }
-    .search-input { width: 100%; }
+    .page-title { font-size: 1.05rem; }
+
+    /* KPI */
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .kpi-card { padding: 14px 12px; }
+    .kpi-value { font-size: 1.3rem; }
+    .kpi-label { font-size: 0.7rem; margin-bottom: 4px; }
+    .kpi-sub { font-size: 0.68rem; }
+
+    /* Card header */
+    .card-header { padding: 14px 16px; flex-direction: column; align-items: stretch; gap: 10px; }
+    .card-actions { width: 100%; }
+    .search-input { width: 100%; flex: 1; }
+    .card-body { padding: 12px; }
+
+    /* Hide desktop table, show mobile cards */
+    .data-table { display: none; }
+    .inv-cards-mobile { display: block; }
+
+    /* Courses list */
+    .course-item { flex-wrap: wrap; padding: 14px 0; }
+    .course-item .btn { width: 100%; margin-top: 8px; justify-content: center; }
+
+    /* Log table stays but scrollable */
+    #page-historique .data-table { display: table; font-size: 0.78rem; }
+    #page-historique .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #page-historique .data-table th,
+    #page-historique .data-table td { padding: 10px 8px; white-space: nowrap; }
+
+    /* Modal */
+    .modal-box { width: 95vw; max-height: 90vh; }
+    .form-row { grid-template-columns: 1fr; }
 }

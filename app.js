@@ -46,14 +46,33 @@ function navigate(page) {
     if (!pageTitles[page]) page = 'inventaire';
     Object.keys(pageTitles).forEach(p => document.getElementById(`page-${p}`).classList.toggle('hidden', p !== page));
     document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+    document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
     document.getElementById('pageTitle').textContent = pageTitles[page];
     document.getElementById('sidebar').classList.remove('open');
+    const bdrop = document.getElementById('sidebarBackdrop');
+    if (bdrop) bdrop.classList.remove('active');
     const loaders = { inventaire: loadInventory, courses: loadCourses, historique: loadHistory };
     if (loaders[page]) loaders[page]();
 }
 
 window.addEventListener('hashchange', () => navigate(location.hash.replace('#', '') || 'inventaire'));
-document.getElementById('menuToggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+document.getElementById('menuToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarBackdrop').classList.toggle('active');
+});
+// Close sidebar on backdrop click
+const backdrop = document.getElementById('sidebarBackdrop');
+if (backdrop) backdrop.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    backdrop.classList.remove('active');
+});
+// Bottom nav
+document.querySelectorAll('.bottom-nav-item').forEach(el => {
+    el.addEventListener('click', () => {
+        document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+    });
+});
 
 // ===== Modal =====
 function openModal(title, html) {
@@ -109,6 +128,7 @@ function filterAndRender() {
     if (catFilter !== 'all') data = data.filter(i => i.category === catFilter);
     if (search) data = data.filter(i => i.name.toLowerCase().includes(search));
 
+    // Desktop table
     document.getElementById('inv-table-body').innerHTML = data.map(i => {
         const isLow = +i.quantity <= +i.min_stock;
         const isEmpty = +i.quantity === 0;
@@ -131,6 +151,32 @@ function filterAndRender() {
             </td>
         </tr>`;
     }).join('') || '<tr><td colspan="7" class="empty-state">Aucun produit trouvé</td></tr>';
+
+    // Mobile cards
+    document.getElementById('inv-cards-mobile').innerHTML = data.map(i => {
+        const isLow = +i.quantity <= +i.min_stock;
+        const isEmpty = +i.quantity === 0;
+        const statusClass = isEmpty ? 'status-rupture' : isLow ? 'status-stock-bas' : 'status-stock-ok';
+        const statusText = isEmpty ? 'Rupture' : isLow ? 'Stock bas' : 'OK';
+        const cat = INV_CATEGORIES[i.category] || { label: i.category, color: 'blue' };
+        const cardClass = isEmpty ? 'rupture' : isLow ? 'low' : '';
+        return `<div class="inv-card-item ${cardClass}">
+            <div class="inv-card-top">
+                <div class="inv-card-name">${i.name}</div>
+                <div class="inv-card-qty ${isEmpty ? 'text-red' : isLow ? 'text-orange' : ''}">${i.quantity} <span style="font-size:0.75rem;font-weight:500;color:var(--text-lighter)">${i.unit}</span></div>
+            </div>
+            <div class="inv-card-mid">
+                <span class="inv-cat inv-cat-${cat.color}">${cat.label}</span>
+                <span class="status ${statusClass}">${statusText}</span>
+                <span style="font-size:0.72rem;color:var(--text-lighter)">min: ${i.min_stock}</span>
+            </div>
+            <div class="inv-card-actions">
+                <button class="action-btn approve" onclick="addStock(${i.id}, '${i.name.replace(/'/g, "\\'")}', ${i.quantity}, '${i.unit}')">+ Stock</button>
+                <button class="action-btn edit" onclick="editItem(${i.id})">Modifier</button>
+                <button class="action-btn reject" onclick="delItem(${i.id})">&#10005;</button>
+            </div>
+        </div>`;
+    }).join('') || '<div class="empty-state">Aucun produit trouvé</div>';
 }
 
 document.getElementById('invCategoryFilter').addEventListener('change', filterAndRender);
