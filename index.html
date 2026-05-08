@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesis — Gestion de stock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">🍔 Genesis</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#inventaire" class="nav-item active" data-page="inventaire">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    Inventaire
+                </a>
+                <a href="#courses" class="nav-item" data-page="courses">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                    Liste de courses
+                </a>
+                <a href="#historique" class="nav-item" data-page="historique">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Historique
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar">G</div>
+                    <div class="user-info">
+                        <span class="user-name">Genesis</span>
+                        <span class="user-role">Fast-food</span>
+                    </div>
+                </div>
+                <div class="powered-by">
+                    Propulsé par <strong>Clareo</strong>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="main-content">
+            <header class="topbar">
+                <button class="menu-toggle" id="menuToggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <h1 class="page-title" id="pageTitle">Inventaire</h1>
+                <div class="topbar-right">
+                    <span class="topbar-date" id="currentDate"></span>
+                </div>
+            </header>
+
+            <div class="page-container" id="pageContainer">
+
+                <!-- INVENTAIRE -->
+                <div class="page" id="page-inventaire">
+                    <div class="kpi-grid">
+                        <div class="kpi-card kpi-blue">
+                            <div class="kpi-content">
+                                <span class="kpi-label">Total produits</span>
+                                <span class="kpi-value" id="inv-total">—</span>
+                                <span class="kpi-sub neutral" id="inv-total-sub"></span>
+                            </div>
+                        </div>
+                        <div class="kpi-card kpi-green">
+                            <div class="kpi-content">
+                                <span class="kpi-label">Stock OK</span>
+                                <span class="kpi-value" id="inv-ok">—</span>
+                                <span class="kpi-sub positive" id="inv-ok-sub"></span>
+                            </div>
+                        </div>
+                        <div class="kpi-card kpi-red">
+                            <div class="kpi-content">
+                                <span class="kpi-label">Stock bas</span>
+                                <span class="kpi-value" id="inv-low">—</span>
+                                <span class="kpi-sub warning" id="inv-low-sub">attention</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Stock Genesis</h3>
+                            <div class="card-actions">
+                                <input type="text" id="invSearch" class="search-input" placeholder="Rechercher un produit...">
+                                <select id="invCategoryFilter" class="filter-select">
+                                    <option value="all">Toutes catégories</option>
+                                    <option value="SEC">Sec</option>
+                                    <option value="FRAIS">Frais</option>
+                                    <option value="SURGELÉ">Surgelé</option>
+                                    <option value="VIANDE">Viande</option>
+                                    <option value="EMBALLAGE">Emballage / Divers</option>
+                                    <option value="SAUCE">Sauce</option>
+                                    <option value="LÉGUMES">Légumes</option>
+                                    <option value="DESSERTS">Desserts</option>
+                                </select>
+                                <button class="btn btn-sm btn-success" id="addStockBtn">+ Réappro</button>
+                                <button class="btn btn-sm btn-primary" id="addItemBtn">+ Produit</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Produit</th>
+                                        <th>Catégorie</th>
+                                        <th class="text-right">Quantité</th>
+                                        <th>Unité</th>
+                                        <th>Seuil min</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inv-table-body">
+                                    <tr><td colspan="7" class="loading">Chargement...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LISTE DE COURSES -->
+                <div class="page hidden" id="page-courses">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Produits à réapprovisionner</h3>
+                            <button class="btn btn-sm btn-success" id="restockAllBtn">Tout réapprovisionner</button>
+                        </div>
+                        <div class="card-body" id="courses-list">
+                            <div class="loading">Chargement...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORIQUE -->
+                <div class="page hidden" id="page-historique">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Historique des mouvements</h3>
+                        </div>
+                        <div class="card-body">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Produit</th>
+                                        <th>Action</th>
+                                        <th class="text-right">Quantité</th>
+                                        <th>Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-table-body">
+                                    <tr><td colspan="5" class="loading">Chargement...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modalTitle">Titre</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
