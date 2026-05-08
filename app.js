@@ -26,6 +26,36 @@ const sb = {
     }
 };
 
+// ===== WhatsApp Alerts (CallMeBot) =====
+const WA_PHONE = '33628204298';
+const WA_APIKEY = '8275269';
+
+function sendWhatsApp(message) {
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${WA_PHONE}&text=${encodeURIComponent(message)}&apikey=${WA_APIKEY}`;
+    fetch(url, { mode: 'no-cors' }).catch(() => {});
+}
+
+function shouldNotify(productId) {
+    const key = `wa_notif_${productId}`;
+    const last = localStorage.getItem(key);
+    if (last && Date.now() - parseInt(last) < 4 * 3600 * 1000) return false;
+    localStorage.setItem(key, Date.now().toString());
+    return true;
+}
+
+function checkAndNotifyLowStock(items) {
+    const alertItems = items.filter(i => +i.quantity <= +i.min_stock && shouldNotify(i.id));
+    if (!alertItems.length) return;
+
+    let msg = '⚠️ *ALERTE STOCK — Genesis*\n\n';
+    alertItems.forEach(i => {
+        const status = +i.quantity === 0 ? '🔴 RUPTURE' : '🟡 Stock bas';
+        msg += `${status} : *${i.name}*\n→ ${i.quantity} ${i.unit} (min: ${i.min_stock})\n\n`;
+    });
+    msg += '📦 Pense à réapprovisionner !';
+    sendWhatsApp(msg);
+}
+
 // ===== Helpers =====
 const fmtDate = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const fmtDateTime = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
@@ -118,6 +148,7 @@ async function loadInventory() {
     document.getElementById('inv-low-sub').className = 'kpi-sub ' + (lowStock.length ? 'warning' : 'positive');
 
     filterAndRender();
+    checkAndNotifyLowStock(allItems);
 }
 
 function filterAndRender() {
@@ -254,6 +285,12 @@ window.editItem = async function(id) {
                 inventory_id: id, action: 'adjust',
                 quantity: newQty - oldQty, note: 'Ajustement manuel'
             });
+            // Notify immediately if stock just dropped below threshold
+            if (newQty <= +fd.get('min_stock') && oldQty > +item.min_stock) {
+                const status = newQty === 0 ? '🔴 RUPTURE' : '🟡 Stock bas';
+                sendWhatsApp(`⚠️ *ALERTE STOCK — Genesis*\n\n${status} : *${fd.get('name')}*\n→ ${newQty} ${fd.get('unit') || item.unit} (min: ${fd.get('min_stock')})\n\n📦 Pense à réapprovisionner !`);
+                localStorage.setItem(`wa_notif_${id}`, Date.now().toString());
+            }
         }
         closeModal();
         loadInventory();
