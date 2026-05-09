@@ -1,7 +1,7 @@
-// ===== Config =====
-const SB_URL = 'https://kjqbrdrxehmdgnojphlp.supabase.co';
-const SB_KEY = 'sb_publishable_a0hRv6l85rV8wBKPz5N29Q_c1gHoXwA';
-const TG_TOKEN = '8447602999:AAGesaY1Syus7rVSdNzP2GE9oMcbV8Hbk9I';
+// ===== Config (via Vercel Environment Variables) =====
+const SB_URL = process.env.SUPABASE_URL || 'https://kjqbrdrxehmdgnojphlp.supabase.co';
+const SB_KEY = process.env.SUPABASE_KEY || 'sb_publishable_a0hRv6l85rV8wBKPz5N29Q_c1gHoXwA';
+const TG_TOKEN = process.env.TELEGRAM_TOKEN || '8447602999:AAGesaY1Syus7rVSdNzP2GE9oMcbV8Hbk9I';
 const SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
 
 // ===== Supabase helpers =====

@@ -26,39 +26,28 @@ const sb = {
     }
 };
 
-// ===== WhatsApp Alerts (CallMeBot) =====
-const WA_PHONE = '33628204298';
-const WA_APIKEY = '8275269';
-
-function sendWhatsApp(message) {
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${WA_PHONE}&text=${encodeURIComponent(message)}&apikey=${WA_APIKEY}`;
-    fetch(url, { mode: 'no-cors' }).catch(() => {});
-}
-
-function shouldNotify(productId) {
-    const key = `wa_notif_${productId}`;
-    const last = localStorage.getItem(key);
-    if (last && Date.now() - parseInt(last) < 4 * 3600 * 1000) return false;
-    localStorage.setItem(key, Date.now().toString());
-    return true;
-}
-
-function checkAndNotifyLowStock(items) {
-    const alertItems = items.filter(i => +i.quantity <= +i.min_stock && shouldNotify(i.id));
-    if (!alertItems.length) return;
-
-    let msg = '⚠️ *ALERTE STOCK — Genesis*\n\n';
-    alertItems.forEach(i => {
-        const status = +i.quantity === 0 ? '🔴 RUPTURE' : '🟡 Stock bas';
-        msg += `${status} : *${i.name}*\n→ ${i.quantity} ${i.unit} (min: ${i.min_stock})\n\n`;
-    });
-    msg += '📦 Pense à réapprovisionner !';
-    sendWhatsApp(msg);
-}
-
 // ===== Helpers =====
 const fmtDate = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const fmtDateTime = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+
+// XSS protection
+function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+// Toast notification
+function showToast(message, type = 'success') {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+}
 
 // ===== Date =====
 const now = new Date();
@@ -136,7 +125,7 @@ async function loadInventory() {
     allItems = await sb.get('inventory', 'order=category.asc,name.asc');
 
     const total = allItems.length;
-    const lowStock = allItems.filter(i => +i.quantity <= +i.min_stock);
+    const lowStock = allItems.filter(i => +i.min_stock > 0 && +i.quantity <= +i.min_stock);
     const okStock = total - lowStock.length;
 
     document.getElementById('inv-total').textContent = total;
@@ -148,7 +137,6 @@ async function loadInventory() {
     document.getElementById('inv-low-sub').className = 'kpi-sub ' + (lowStock.length ? 'warning' : 'positive');
 
     filterAndRender();
-    checkAndNotifyLowStock(allItems);
 }
 
 function filterAndRender() {
@@ -167,7 +155,7 @@ function filterAndRender() {
         const statusText = isEmpty ? 'Rupture' : isLow ? 'Stock bas' : 'OK';
         const cat = INV_CATEGORIES[i.category] || { label: i.category, color: 'blue' };
         return `<tr class="${isLow ? 'inv-row-low' : ''}">
-            <td><strong>${i.name}</strong></td>
+            <td><strong>${esc(i.name)}</strong></td>
             <td><span class="inv-cat inv-cat-${cat.color}">${cat.label}</span></td>
             <td class="text-right"><strong class="${isEmpty ? 'text-red' : isLow ? 'text-orange' : ''}">${i.quantity}</strong></td>
             <td>${i.unit}</td>
@@ -193,7 +181,7 @@ function filterAndRender() {
         const cardClass = isEmpty ? 'rupture' : isLow ? 'low' : '';
         return `<div class="inv-card-item ${cardClass}">
             <div class="inv-card-top">
-                <div class="inv-card-name">${i.name}</div>
+                <div class="inv-card-name">${esc(i.name)}</div>
                 <div class="inv-card-qty ${isEmpty ? 'text-red' : isLow ? 'text-orange' : ''}">${i.quantity} <span style="font-size:0.75rem;font-weight:500;color:var(--text-lighter)">${i.unit}</span></div>
             </div>
             <div class="inv-card-mid">
@@ -240,6 +228,7 @@ window.addStock = function(id, name, currentQty, unit) {
         await sb.patch('inventory', id, { quantity: +currentQty + qty, updated_at: new Date().toISOString() });
         await sb.post('stock_logs', { inventory_id: id, action: 'restock', quantity: qty, note: fd.get('note') || 'Réapprovisionnement' });
         closeModal();
+        showToast(`+${qty} ${unit} ajouté(s) à ${name}`);
         loadInventory();
     };
 };
@@ -285,14 +274,9 @@ window.editItem = async function(id) {
                 inventory_id: id, action: 'adjust',
                 quantity: newQty - oldQty, note: 'Ajustement manuel'
             });
-            // Notify immediately if stock just dropped below threshold
-            if (newQty <= +fd.get('min_stock') && oldQty > +item.min_stock) {
-                const status = newQty === 0 ? '🔴 RUPTURE' : '🟡 Stock bas';
-                sendWhatsApp(`⚠️ *ALERTE STOCK — Genesis*\n\n${status} : *${fd.get('name')}*\n→ ${newQty} ${fd.get('unit') || item.unit} (min: ${fd.get('min_stock')})\n\n📦 Pense à réapprovisionner !`);
-                localStorage.setItem(`wa_notif_${id}`, Date.now().toString());
-            }
         }
         closeModal();
+        showToast('Produit modifié');
         loadInventory();
     };
 };
@@ -301,6 +285,7 @@ window.editItem = async function(id) {
 window.delItem = async function(id) {
     if (confirm('Supprimer ce produit de l\'inventaire ?')) {
         await sb.del('inventory', id);
+        showToast('Produit supprimé', 'warning');
         loadInventory();
     }
 };
@@ -335,6 +320,7 @@ document.getElementById('addItemBtn').addEventListener('click', () => {
             quantity: +fd.get('quantity'), min_stock: +fd.get('min_stock')
         });
         closeModal();
+        showToast('Nouveau produit ajouté');
         loadInventory();
     };
 });
@@ -378,6 +364,7 @@ document.getElementById('addStockBtn').addEventListener('click', async () => {
         await sb.patch('inventory', itemId, { quantity: currentQty + qty, updated_at: new Date().toISOString() });
         await sb.post('stock_logs', { inventory_id: +itemId, action: 'restock', quantity: qty, note: fd.get('note') || 'Réapprovisionnement' });
         closeModal();
+        showToast('Stock réapprovisionné');
         loadInventory();
     };
 });
@@ -387,7 +374,7 @@ document.getElementById('addStockBtn').addEventListener('click', async () => {
 // ===========================================
 async function loadCourses() {
     const items = await sb.get('inventory', 'order=category.asc,name.asc');
-    const lowStock = items.filter(i => +i.quantity <= +i.min_stock);
+    const lowStock = items.filter(i => +i.min_stock > 0 && +i.quantity <= +i.min_stock);
 
     const el = document.getElementById('courses-list');
     if (!lowStock.length) {
@@ -400,7 +387,7 @@ async function loadCourses() {
         const needed = Math.max(0, +i.min_stock * 2 - +i.quantity);
         return `<div class="course-item">
             <div class="course-info">
-                <div class="course-name">${i.name}</div>
+                <div class="course-name">${esc(i.name)}</div>
                 <div class="course-detail"><span class="inv-cat inv-cat-${cat.color}" style="font-size:0.68rem;padding:2px 8px">${cat.label}</span> &middot; Stock : ${i.quantity} ${i.unit} &middot; Seuil : ${i.min_stock} ${i.unit}</div>
             </div>
             <span class="course-badge">${isEmpty(i) ? 'RUPTURE' : 'Stock bas'}</span>
@@ -413,7 +400,7 @@ function isEmpty(i) { return +i.quantity === 0; }
 
 document.getElementById('restockAllBtn').addEventListener('click', async () => {
     const items = await sb.get('inventory', 'order=category.asc,name.asc');
-    const lowStock = items.filter(i => +i.quantity <= +i.min_stock);
+    const lowStock = items.filter(i => +i.min_stock > 0 && +i.quantity <= +i.min_stock);
 
     if (!lowStock.length) { alert('Aucun produit à réapprovisionner.'); return; }
 
@@ -449,7 +436,7 @@ async function loadHistory() {
         const sign = l.quantity >= 0 ? '+' : '';
         return `<tr>
             <td>${fmtDateTime(l.created_at)}</td>
-            <td><strong>${nameMap[l.inventory_id] || 'Produit supprimé'}</strong></td>
+            <td><strong>${esc(nameMap[l.inventory_id] || 'Produit supprimé')}</strong></td>
             <td><span class="log-${l.action}">${actionLabels[l.action] || l.action}</span></td>
             <td class="text-right"><strong class="${l.quantity >= 0 ? '' : 'text-red'}">${sign}${l.quantity}</strong></td>
             <td style="color:var(--text-lighter)">${l.note || '—'}</td>

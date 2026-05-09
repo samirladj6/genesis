@@ -469,3 +469,26 @@ button { cursor: pointer; font-family: inherit; }
     .modal-box { width: 95vw; max-height: 90vh; }
     .form-row { grid-template-columns: 1fr; }
 }
+
+/* ===== Toast notifications ===== */
+.toast {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    left: auto;
+    transform: translateY(-20px);
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+    box-shadow: var(--shadow-lg);
+    max-width: 90vw;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast-success { background: var(--green); color: var(--bg-dark); }
+.toast-warning { background: var(--primary); color: var(--bg-dark); }
+.toast-error { background: var(--red); color: var(--white); }
